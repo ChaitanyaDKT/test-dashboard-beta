@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Technical Direction : Mobility Interactive Dashboard</title>
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Custom CSS -->
+  <style>
+    body {
+      background-color: #f8f9fa;
+    }
+    .card {
+      margin-bottom: 20px;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+    .navbar-brand {
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Bar -->
+  <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+    <div class="container-fluid">
+      <a class="navbar-brand" href="#">Technical Direction : Mobility Dashboard</a>
+    </div>
+  </nav>
+  
+  <div class="container">
+    <!-- Filters Section -->
+    <div class="row mb-4">
+      <div class="col-md-4">
+        <label for="teamSelect" class="form-label">Select Team Member:</label>
+        <select id="teamSelect" class="form-select">
+          <option value="all">All</option>
+          <option value="Sandeep">Sandeep</option>
+          <option value="Vikram">Vikram</option>
+          <option value="Chaitanya">Chaitanya</option>
+        </select>
+      </div>
+      <div class="col-md-4">
+        <label for="startDate" class="form-label">Start Date:</label>
+        <input type="date" id="startDate" class="form-control">
+      </div>
+      <div class="col-md-4">
+        <label for="endDate" class="form-label">End Date:</label>
+        <input type="date" id="endDate" class="form-control">
+      </div>
+    </div>
+    
+    <!-- Dashboard Cards -->
+    <div class="row">
+      <!-- Sales Turnover Forecast Chart -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            Sales Turnover Forecast (Yearly)
+          </div>
+          <div class="card-body">
+            <canvas id="salesChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- Product Sales Distribution Chart -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            Product Sales Distribution
+          </div>
+          <div class="card-body">
+            <canvas id="productChart"></canvas>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="row">
+      <!-- Customer Reviews (Average Ratings) Chart -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            Customer Reviews (Average Ratings)
+          </div>
+          <div class="card-body">
+            <canvas id="reviewsChart"></canvas>
+          </div>
+        </div>
+      </div>
+      <!-- Recent Reviews Table -->
+      <div class="col-lg-6">
+        <div class="card">
+          <div class="card-header">
+            Recent Customer Reviews
+          </div>
+          <div class="card-body">
+            <div class="table-responsive">
+              <table id="reviewsTable" class="table table-striped">
+                <thead>
+                  <tr>
+                    <th>Product</th>
+                    <th>Reviewer</th>
+                    <th>Rating</th>
+                    <th>Comment</th>
+                    <th>Date</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <!-- Rows will be inserted dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+  
+  <!-- Modal for Product Details -->
+  <div class="modal fade" id="productModal" tabindex="-1" aria-labelledby="productModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 id="productModalLabel" class="modal-title">Product Details</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+          <p id="productDetails"></p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Bootstrap JS Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Chart.js Library -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  
+  <script>
+    // Data for 12 months
+    const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    
+    // Mock Sales Data for "all" and each team member
+    const mockSalesData = {
+      all: {
+        labels: months,
+        data: [12000, 15000, 17000, 14000, 18000, 20000, 21000, 19000, 22000, 23000, 24000, 25000],
+        forecast: [13000, 16000, 18000, 15000, 19000, 21000, 22000, 20000, 23000, 24000, 25000, 26000]
+      },
+      Sandeep: {
+        labels: months,
+        data: [5000, 6000, 7000, 5500, 6500, 7000, 7500, 6800, 8000, 8500, 9000, 9500],
+        forecast: [5200, 6300, 7300, 5600, 6800, 7200, 7600, 7000, 8300, 8700, 9200, 9800]
+      },
+      Vikram: {
+        labels: months,
+        data: [4000, 5000, 6000, 4500, 5500, 6000, 6200, 5800, 6400, 6800, 7200, 7500],
+        forecast: [4200, 5200, 6300, 4600, 5800, 6300, 6500, 6000, 6700, 7100, 7600, 8000]
+      },
+      Chaitanya: {
+        labels: months,
+        data: [3000, 4000, 4000, 4000, 6000, 7000, 7300, 6500, 7800, 8000, 8500, 9000],
+        forecast: [3600, 4500, 5000, 4800, 6300, 7500, 7800, 7000, 8300, 8700, 9200, 9700]
+      }
+    };
+    
+    // Updated Product Sales Distribution Data with additional products
+    const mockProductData = {
+      labels: ["MTB Bikes", "Road Bikes", "Leisure Bikes", "Scooters", "Accessories", "Kids Bikes"],
+      data: [30, 20, 15, 10, 15, 10]
+    };
+    
+    // Updated Customer Reviews Data (Average Ratings)
+    const mockReviewData = {
+      labels: ["MTB Bikes", "Road Bikes", "Leisure Bikes", "Scooters", "Accessories", "Kids Bikes"],
+      data: [4.5, 4.0, 4.2, 4.8, 3.9, 4.1]
+    };
+    
+    // Mock Recent Reviews Table Data
+    const recentReviews = [
+      { product: "MTB Bikes", reviewer: "John Doe", rating: 5, comment: "Amazing ride!", date: "2025-02-10" },
+      { product: "Road Bikes", reviewer: "Jane Smith", rating: 4, comment: "Smooth performance.", date: "2025-02-12" },
+      { product: "Leisure Bikes", reviewer: "Mike Johnson", rating: 4, comment: "Great value for money.", date: "2025-02-14" },
+      { product: "Scooters", reviewer: "Emily Davis", rating: 5, comment: "Loved the power!", date: "2025-02-15" },
+      { product: "Accessories", reviewer: "Chris Lee", rating: 3, comment: "Could be better.", date: "2025-02-16" },
+      { product: "Kids Bikes", reviewer: "Anna Brown", rating: 4, comment: "Perfect for city rides.", date: "2025-02-18" }
+    ];
+    
+    // Populate Recent Reviews Table
+    function populateReviewsTable() {
+      const tbody = document.querySelector("#reviewsTable tbody");
+      tbody.innerHTML = "";
+      recentReviews.forEach(review => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+          <td>${review.product}</td>
+          <td>${review.reviewer}</td>
+          <td>${review.rating}</td>
+          <td>${review.comment}</td>
+          <td>${review.date}</td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+    
+    populateReviewsTable();
+    
+    // Create Sales Chart (Line Chart)
+    const salesChartCtx = document.getElementById("salesChart").getContext("2d");
+    let salesChart = new Chart(salesChartCtx, {
+      type: "line",
+      data: {
+        labels: mockSalesData.all.labels,
+        datasets: [
+          {
+            label: "Actual Sales",
+            data: mockSalesData.all.data,
+            borderColor: "blue",
+            backgroundColor: "rgba(0, 0, 255, 0.1)",
+            fill: true,
+            tension: 0.2,
+            pointRadius: 4
+          },
+          {
+            label: "Forecast Sales",
+            data: mockSalesData.all.forecast,
+            borderColor: "orange",
+            backgroundColor: "rgba(255, 165, 0, 0.1)",
+            fill: true,
+            borderDash: [5, 5],
+            tension: 0.2,
+            pointRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        interaction: {
+          mode: 'index',
+          intersect: false,
+        },
+        plugins: {
+          title: {
+            display: true,
+            text: "Sales Turnover Forecast"
+          },
+          tooltip: {
+            mode: 'index',
+            intersect: false,
+          }
+        },
+        scales: {
+          y: {
+            beginAtZero: true
+          }
+        }
+      }
+    });
+    
+    // Create Product Sales Distribution Chart (Pie Chart)
+    const productChartCtx = document.getElementById("productChart").getContext("2d");
+    let productChart = new Chart(productChartCtx, {
+      type: "pie",
+      data: {
+        labels: mockProductData.labels,
+        datasets: [{
+          data: mockProductData.data,
+          backgroundColor: ["#ff6384", "#36a2eb", "#ffce56", "#4bc0c0", "#9966ff", "#ff9f40"]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: "Product Sales Distribution"
+          }
+        },
+        onClick: (evt, activeEls) => {
+          if (activeEls.length > 0) {
+            const index = activeEls[0].index;
+            const product = mockProductData.labels[index];
+            showProductDetails(product);
+          }
+        }
+      }
+    });
+    
+    // Create Customer Reviews Chart (Bar Chart)
+    const reviewsChartCtx = document.getElementById("reviewsChart").getContext("2d");
+    let reviewsChart = new Chart(reviewsChartCtx, {
+      type: "bar",
+      data: {
+        labels: mockReviewData.labels,
+        datasets: [{
+          label: "Average Rating",
+          data: mockReviewData.data,
+          backgroundColor: ["#4bc0c0", "#36a2eb", "#ffce56", "#ff6384", "#9966ff", "#ff9f40"]
+        }]
+      },
+      options: {
+        responsive: true,
+        plugins: {
+          title: {
+            display: true,
+            text: "Customer Reviews (Average Ratings)"
+          }
+        },
+        scales: {
+          y: {
+            suggestedMin: 0,
+            suggestedMax: 5,
+            ticks: {
+              stepSize: 0.5
+            }
+          }
+        }
+      }
+    });
+    
+    // Update Sales Chart when team member selection changes
+    document.getElementById("teamSelect").addEventListener("change", function() {
+      let teamMember = this.value;
+      let dataSet = teamMember === "all" ? mockSalesData.all : mockSalesData[teamMember];
+      salesChart.data.labels = dataSet.labels;
+      salesChart.data.datasets[0].data = dataSet.data;
+      salesChart.data.datasets[1].data = dataSet.forecast;
+      salesChart.update();
+    });
+    
+    // Function to show product details in modal
+    function showProductDetails(product) {
+      // Mock detailed data for each product
+      const details = {
+        "MTB Bikes": "Q1: $35,000, Q2: $42,000, Q3: $38,000, Q4: $45,000",
+        "Road Bikes": "Q1: $28,000, Q2: $32,000, Q3: $30,000, Q4: $34,000",
+        "Leisure Bikes": "Q1: $22,000, Q2: $25,000, Q3: $24,000, Q4: $26,000",
+        "Scooters": "Q1: $15,000, Q2: $18,000, Q3: $17,000, Q4: $20,000",
+        "Accessories": "Q1: $18,000, Q2: $20,000, Q3: $19,000, Q4: $21,000",
+        "Kids Bikes": "Q1: $12,000, Q2: $14,000, Q3: $13,000, Q4: $15,000"
+      };
+      document.getElementById("productModalLabel").innerText = product + " Details";
+      document.getElementById("productDetails").innerText = details[product] || "No data available.";
+      const modal = new bootstrap.Modal(document.getElementById("productModal"));
+      modal.show();
+    }
+    
+    // Filter recent reviews based on date range (if provided)
+    function filterReviews() {
+      const startDate = new Date(document.getElementById("startDate").value);
+      const endDate = new Date(document.getElementById("endDate").value);
+      const tbody = document.querySelector("#reviewsTable tbody");
+      tbody.innerHTML = "";
+      recentReviews.forEach(review => {
+        const reviewDate = new Date(review.date);
+        if ((!document.getElementById("startDate").value || reviewDate >= startDate) &&
+            (!document.getElementById("endDate").value || reviewDate <= endDate)) {
+          const row = document.createElement("tr");
+          row.innerHTML = `
+            <td>${review.product}</td>
+            <td>${review.reviewer}</td>
+            <td>${review.rating}</td>
+            <td>${review.comment}</td>
+            <td>${review.date}</td>
+          `;
+          tbody.appendChild(row);
+        }
+      });
+    }
+    
+    document.getElementById("startDate").addEventListener("change", filterReviews);
+    document.getElementById("endDate").addEventListener("change", filterReviews);
+  </script>
+</body>
+</html>
